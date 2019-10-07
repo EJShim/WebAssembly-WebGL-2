@@ -4,8 +4,7 @@
 #define GLFW_INCLUDE_ES3
 #include <GLFW/glfw3.h>
 #include <GLES3/gl3.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
 
 GLFWwindow * window;
 GLuint vertex_buffer, vertex_shader, fragment_shader, program;
@@ -41,9 +40,16 @@ static const char* fragment_shader_text =
     "    o_color = vec4(i_color, 1.0);\n"
     "}\n";
 
-static void output_error(int error, const char * msg) {
-    fprintf(stderr, "Error: %s\n", msg);
+
+static bool background_is_black = true;
+
+// the function called by the javascript code
+extern "C" void EMSCRIPTEN_KEEPALIVE toggle_background_color() { 
+    background_is_black = !background_is_black; 
 }
+
+
+
 
 static void generate_frame() {
     float ratio;
@@ -52,12 +58,20 @@ static void generate_frame() {
     glfwGetFramebufferSize(window, &width, &height);
     ratio = width / (float) height;
     glViewport(0, 0, width, height);
+    
+
+    // Clear the screen
+    if( background_is_black )
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    else
+        glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    
+    
     mat4x4_identity(m);
     mat4x4_rotate_Z(m, m, (float) glfwGetTime());
     mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
-    glUseProgram(program);
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*) mvp);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -65,43 +79,7 @@ static void generate_frame() {
     glfwPollEvents();
 }
 
-static int check_compiled(GLuint shader) {
-    GLint success = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-    if(success == GL_FALSE) {
-        GLint max_len = 0;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &max_len);
-
-        GLchar err_log[max_len];
-        glGetShaderInfoLog(shader, max_len, &max_len, &err_log[0]);
-        glDeleteShader(shader);
-
-        fprintf(stderr, "Shader compilation failed: %s\n", err_log);
-    }
-
-    return success;
-}
-
-static int check_linked(GLuint program) {
-    GLint success = 0;
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-
-    if(success == GL_FALSE) {
-        GLint max_len = 0;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &max_len);
-
-        GLchar err_log[max_len];
-        glGetProgramInfoLog(program, max_len, &max_len, &err_log[0]);
-
-        fprintf(stderr, "Program linking failed: %s\n", err_log);
-    }
-
-    return success;
-}
-
 int main() {
-    glfwSetErrorCallback(output_error);
 
     if (!glfwInit()) {
         fputs("Faileid to initialize GLFW", stderr);
@@ -114,7 +92,7 @@ int main() {
     window = glfwCreateWindow(640, 480, "My Title", NULL, NULL);
 
     if (!window) {
-        fputs("Failed to create GLFW window", stderr);
+        std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         emscripten_force_exit(EXIT_FAILURE);
     }
@@ -128,28 +106,27 @@ int main() {
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
     glCompileShader(vertex_shader);
-    check_compiled(vertex_shader);
 
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
     glCompileShader(fragment_shader);
-    check_compiled(fragment_shader);
 
     program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
-    check_linked(program);
+    glUseProgram(program);
 
     mvp_location = glGetUniformLocation(program, "MVP");
     vpos_location = glGetAttribLocation(program, "vPos");
     vcol_location = glGetAttribLocation(program, "vCol");
     glEnableVertexAttribArray(vpos_location);
-    glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
-        sizeof(float) * 5, (void*) 0);
+    glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*) 0);
     glEnableVertexAttribArray(vcol_location);
-    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
-        sizeof(float) * 5, (void*) (sizeof(float) * 2));
+    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*) (sizeof(float) * 2));
+
+
+
 
     emscripten_set_main_loop(generate_frame, 0, 0);
 }
