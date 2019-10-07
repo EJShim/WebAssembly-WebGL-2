@@ -10,6 +10,7 @@
 GLFWwindow * window;
 GLuint vertex_buffer, vertex_shader, fragment_shader, program;
 GLint mvp_location, vpos_location, vcol_location;
+
 static const struct
 {
     float x, y;
@@ -64,7 +65,7 @@ static void generate_frame() {
     glfwPollEvents();
 }
 
-static int check_compiled(shader) {
+static int check_compiled(GLuint shader) {
     GLint success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 
@@ -82,7 +83,7 @@ static int check_compiled(shader) {
     return success;
 }
 
-static int check_linked(program) {
+static int check_linked(GLuint program) {
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
 
