@@ -1,7 +1,10 @@
 
 //TODO : Set emscripten flag
-#include <emscripten/emscripten.h>
-#define GLFW_INCLUDE_ES3
+
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/emscripten.h>
+    #define GLFW_INCLUDE_ES3
+#endif
 
 #include "linmath.h"
 
@@ -86,7 +89,7 @@ int main() {
 
     if (!glfwInit()) {
         fputs("Faileid to initialize GLFW", stderr);
-        emscripten_force_exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -97,7 +100,7 @@ int main() {
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-        emscripten_force_exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     glfwMakeContextCurrent(window);
@@ -128,5 +131,7 @@ int main() {
     glEnableVertexAttribArray(vcol_location);
     glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*) (sizeof(float) * 2));
 
-    emscripten_set_main_loop(generate_frame, 0, 0);
+    #ifdef __EMSCRIPTEN__
+        emscripten_set_main_loop(generate_frame, 0, 0);
+    #endif
 }

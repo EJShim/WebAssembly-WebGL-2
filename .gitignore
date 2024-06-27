@@ -1,2 +1,4 @@
 build/
+docs/index.js
+docs/index.wasm
 .vscode/
