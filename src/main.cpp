@@ -1,7 +1,10 @@
-#include "linmath.h"
 
+//TODO : Set emscripten flag
 #include <emscripten/emscripten.h>
 #define GLFW_INCLUDE_ES3
+
+#include "linmath.h"
+
 #include <GLFW/glfw3.h>
 #include <GLES3/gl3.h>
 #include <iostream>
